@@ -49,10 +49,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f1xx_hal.h"
+#include "i2c.h"
 #include "usb_device.h"
+#include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -64,7 +66,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -91,6 +92,8 @@ int main(void)
 	  mouseHID.x = 10;
 	  mouseHID.y = 0;
 	  mouseHID.wheel = 0;
+
+
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -112,9 +115,19 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C1_Init();
 
   /* USER CODE BEGIN 2 */
+  uint8_t dado[8];
+  unsigned char cdado;
+  HAL_I2C_IsDeviceReady(&hi2c1, 0x68<<1, 3, 100);
 
+  //HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+
+  cdado=0x6B;
+  	  HAL_I2C_Master_Transmit(&hi2c1, 0x68<<1, &cdado, 1, 100);
+  	cdado=0x0;
+  		  HAL_I2C_Master_Transmit(&hi2c1, 0x68<<1, &cdado, 1, 100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -125,9 +138,27 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 	  // Send HID report
-	      mouseHID.x = 10;
-	      USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
-	      HAL_Delay(1000);
+      cdado=0x3B;
+	  HAL_I2C_Master_Transmit(&hi2c1, 0x68<<1, &cdado, 1, 100);
+
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, dado, 8, 100);
+
+//	  static HAL_StatusTypeDef I2C_MasterRequestWrite(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint32_t Timeout, uint32_t Tickstart)
+//    static HAL_StatusTypeDef I2C_MasterRequestRead(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint32_t Timeout, uint32_t Tickstart)
+
+	  /*HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);
+	  HAL_I2C_Master_Receive(&hi2c1, 0x68<<1, &cdado, 1, 100);*/
+
+	  //printf("TESTE:");
+//	  printf(dado);
+	      //mouseHID.x = 10;
+	      //USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
+	      HAL_Delay(100);
   }
   /* USER CODE END 3 */
 
@@ -150,7 +181,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -165,13 +196,13 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -187,22 +218,6 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-
-/** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-*/
-static void MX_GPIO_Init(void)
-{
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
 }
 
 /* USER CODE BEGIN 4 */
