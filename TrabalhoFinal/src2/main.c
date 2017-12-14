@@ -65,6 +65,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 SD_MPU6050 mpu1;
+SD_MPU6050 mpu2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,7 +84,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	SD_MPU6050_Result result ;
+	SD_MPU6050_Result result, result2;
 	uint8_t mpu_ok[15] = {"MPU WORK FINE\n"};
 	uint8_t mpu_not[17] = {"MPU NOT WORKING\n"};
 
@@ -123,8 +124,14 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C2_Init();
 
   /* USER CODE BEGIN 2 */
+  int16_t aux = 0;
+  int16_t auy = 0;
+
+//  int16_t g_x = 0;
+//  int16_t g_y = 0;
 
   /* USER CODE END 2 */
 
@@ -133,27 +140,60 @@ int main(void)
   while (1)
   {
 	  result = SD_MPU6050_Init(&hi2c1,&mpu1,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_2G,SD_MPU6050_Gyroscope_250s );
-	  HAL_Delay(50);
+	  result2 = SD_MPU6050_Init(&hi2c2,&mpu2,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_2G,SD_MPU6050_Gyroscope_250s );
+
+	  HAL_Delay(25);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  /*
-	  SD_MPU6050_ReadAccelerometer(&hi2c1,&mpu1);
-	  int16_t a_x = mpu1.Accelerometer_X;
-	  int16_t a_y = mpu1.Accelerometer_Y;
-	  int16_t a_z = mpu1.Accelerometer_Z;
-	  */
 
+//	  Reading Mouse Position
 	  SD_MPU6050_ReadGyroscope(&hi2c1, &mpu1);
+
 	  int16_t g_x = mpu1.Gyroscope_X;
 	  int16_t g_y = mpu1.Gyroscope_Y;
 	  int16_t g_z = mpu1.Gyroscope_Z;
 
-	  mouseHID.x = (g_y)/100;
-	  mouseHID.y = (g_x)/100;
-	  USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
-	  HAL_Delay(10);
+//	  Coordenada Y
+	  if((g_x - aux) > 300 && -(g_x - aux) < -300){
+		  mouseHID.y = (g_x)/100;
+	  } else {
+		  if(g_x < 0 && (g_x - aux) < -300){
+	  		  mouseHID.y = (g_x)/150;
+	  	  } else {
+	  		  mouseHID.y = 0;
+	  	  }
+	  }
 
+//	  Coordenada X
+	  if((g_y - auy) > 300 && -(g_y - auy) < -300){
+		  mouseHID.x = (g_y)/100;
+	  } else {
+		  if(g_y < 0 && (g_y - auy) < -300){
+			  mouseHID.x = (g_y)/150;
+		  } else {
+			  mouseHID.x = 0;
+		  }
+	  }
+
+//	  Reading Button Accelerometer
+	  SD_MPU6050_ReadAccelerometer(&hi2c2, &mpu2);
+	  int16_t a_x = mpu2.Accelerometer_X;
+
+//	  Button Clicked
+	  if(a_x < -3000){
+	  	  mouseHID.buttons = 1;
+	  }
+	  USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
+	  HAL_Delay(25);
+
+//	  Button Released
+	  if(a_x > -3000)
+	  {
+		  mouseHID.buttons = 0;
+	  }
+	  USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
+	  HAL_Delay(5);
   }
   /* USER CODE END 3 */
 
