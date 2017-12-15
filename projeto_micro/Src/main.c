@@ -47,13 +47,11 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-/*Essas são as bibliotecas necessárias para desenvolver o projeto. Os sensores MPU6050 utilizam comunicação I2C.
- *
- */
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "i2c.h"
 #include "usb_device.h"
+#include "gpio.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -135,10 +133,10 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-
-  MX_I2C1_Init();		  // Init the first I2C comunication
-  MX_I2C2_Init();   	  // Init the second I2C comunication
-  MX_USB_DEVICE_Init();   // Init the USB comunication
+  MX_GPIO_Init();
+  MX_I2C1_Init();
+  MX_I2C2_Init();
+  MX_USB_DEVICE_Init();
 
   /* USER CODE BEGIN 2 */
   int16_t aux = 0;
@@ -164,7 +162,6 @@ int main(void)
 
 	  int16_t g_x = mpu1.Gyroscope_X;
 	  int16_t g_y = mpu1.Gyroscope_Y;
-	  int16_t g_z = mpu1.Gyroscope_Z;
 
 	  // X axis' value from Gyroscope, which corresponds to the Y axis' movement.
 	  // This verification sets a threshold to the cursor's movement in the y axis'.
@@ -260,8 +257,6 @@ void SystemClock_Config(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
-
-  HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_1);
 
     /**Configure the Systick interrupt time 
     */
