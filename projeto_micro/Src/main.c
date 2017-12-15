@@ -54,11 +54,9 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
-#include "sd_hal_mpu6050.h" //Library used to read sensor's values. Can be found at: https://github.com/sinadarvi/SD_HAL_MPU6050
+#include "sd_hal_mpu6050.h"
 #include "stm32f1xx.h"
 #include "stm32f1xx_hal.h"
-
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -66,12 +64,8 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-/* Variables of type SD_MPU6050. Which have the sensor's values.
- * We use two sensors, so we use two variables.*/
-
 SD_MPU6050 mpu1;
 SD_MPU6050 mpu2;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -90,28 +84,22 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	//Flags which gives us status of the sensors mpu1 and mpu2 respectively.
 	SD_MPU6050_Result result, result2;
 	uint8_t mpu_ok[15] = {"MPU WORK FINE\n"};
 	uint8_t mpu_not[17] = {"MPU NOT WORKING\n"};
 
 	//	HID MOUSE
-	/*  Struct with mouse's cursor informations.
-	 *  If we set mouseHID.x = 10, the cursor will move 10 units in x axis. It's analogue to mouseHID.y, but in y axis.
-	 *  If we set mouseHID.buttons = 1, the cursor will click. If mouseHID.buttons = 0, the cursor will release the click.
-	 *  We don't use mouseHID.wheel in this project.
-	 */
-	struct mouseHID_t {
-	      int8_t x;
-	      int8_t y;
-		  int8_t wheel;
-		  uint8_t buttons;
-	};
-	struct mouseHID_t mouseHID;
-	mouseHID.x 		 = 0;
-	mouseHID.y		 = 0;
-	mouseHID.wheel 	 = 0;
-	mouseHID.buttons = 0;
+		struct mouseHID_t {
+		      uint8_t buttons;
+		      int8_t x;
+		      int8_t y;
+		      int8_t wheel;
+		  };
+		  struct mouseHID_t mouseHID;
+		  mouseHID.buttons = 0;
+		  mouseHID.x = 10;
+		  mouseHID.y = 0;
+		  mouseHID.wheel = 0;
 
 
   /* USER CODE END 1 */
@@ -135,12 +123,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_I2C2_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C2_Init();
 
   /* USER CODE BEGIN 2 */
   int16_t aux = 0;
   int16_t auy = 0;
+
+//  int16_t g_x = 0;
+//  int16_t g_y = 0;
 
   /* USER CODE END 2 */
 
@@ -148,8 +139,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // We try to use the MPU sensors and assign them to the variables. Result will tell us if the process was successful.
-	  result  = SD_MPU6050_Init(&hi2c1,&mpu1,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_2G,SD_MPU6050_Gyroscope_250s );
+	  result = SD_MPU6050_Init(&hi2c1,&mpu1,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_2G,SD_MPU6050_Gyroscope_250s );
 	  result2 = SD_MPU6050_Init(&hi2c2,&mpu2,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_2G,SD_MPU6050_Gyroscope_250s );
 
 	  HAL_Delay(25);
@@ -157,27 +147,26 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 
-	  // Reading Mouse Position
+//	  Reading Mouse Position
 	  SD_MPU6050_ReadGyroscope(&hi2c1, &mpu1);
 
 	  int16_t g_x = mpu1.Gyroscope_X;
 	  int16_t g_y = mpu1.Gyroscope_Y;
+	  int16_t g_z = mpu1.Gyroscope_Z;
 
-	  // X axis' value from Gyroscope, which corresponds to the Y axis' movement.
-	  // This verification sets a threshold to the cursor's movement in the y axis'.
-	  if((g_x - aux) > 300 && -(g_x - aux) < -300) {
+//	  Coordenada Y
+	  if((g_x - aux) > 300 && -(g_x - aux) < -300){
 		  mouseHID.y = (g_x)/150;
 	  } else {
-		  if(g_x < 0 && (g_x - aux) < -300) {
+		  if(g_x < 0 && (g_x - aux) < -300){
 	  		  mouseHID.y = (g_x)/150;
 	  	  } else {
 	  		  mouseHID.y = 0;
 	  	  }
 	  }
 
-	  // Analogue to the previous block of code, the Y axis' value from Gyroscope corresponds to the  X axis' value of the cursor.
-	  // Once again, this verification sets a threshold to the cursor's movement in the x axis'.
-	  if((g_y - auy) > 300 && -(g_y - auy) < -300) {
+//	  Coordenada X
+	  if((g_y - auy) > 300 && -(g_y - auy) < -300){
 		  mouseHID.x = (g_y)/150;
 	  } else {
 		  if(g_y < 0 && (g_y - auy) < -300){
@@ -187,24 +176,22 @@ int main(void)
 		  }
 	  }
 
-	  // Reading Accelerometer to use in the click function of the mouse.
+//	  Reading Button Accelerometer
 	  SD_MPU6050_ReadAccelerometer(&hi2c2, &mpu2);
 	  int16_t a_x = mpu2.Accelerometer_X;
 
-	  // Button Clicked: if we receive values less than -4500 in the accelerometer x axis', we understand that a click
-	  // was made by the user.
+//	  Button Clicked
 	  if(a_x < -4500){
 	  	  mouseHID.buttons = 1;
-	  	  // We set the values below to zero so we can have more stability in the click movement.
 	  	  mouseHID.x = 0;
 	  	  mouseHID.y = 0;
-	  	  // The SendReport function send to the mouse's driver the informations about the cursor movements and/or click.
-	  	  USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
+		  USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
 	  }
 	  HAL_Delay(25);
 
-	  // Button Released: Since we had set the click threshold to -4500, if the code passes this verification, the click is released.
-	  if(a_x > -4500) {
+//	  Button Released
+	  if(a_x > -4500)
+	  {
 		  mouseHID.buttons = 0;
 	  }
 	  USBD_HID_SendReport(&hUsbDeviceFS, &mouseHID, sizeof(struct mouseHID_t));
@@ -257,6 +244,8 @@ void SystemClock_Config(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
+  HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_1);
 
     /**Configure the Systick interrupt time 
     */
