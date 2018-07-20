@@ -6,6 +6,11 @@ Authors: @romulofff, @marcusvlma, @pablogrisi
 
 Professor Jardel Silveira
 
+When referencing Glouse, please include a bibliographical reference to the paper below, and, if possible, include a link to www.deti.ufc.br.
+
+[1] Filho, R. and Andrade,M. and Grisi, P. and Silveira, R.,  GLOUSE - A Wearable Mouse Device
+SFORUM - 18th Microelectronics Students Forum, 2018, 4p., Bento Gonçalves.
+
 In order to reproduce the Glouse open the file "Documento de Instruções" and follow the instructions.
 
 For demo video see: https://youtu.be/qt7EAwGA7hY
